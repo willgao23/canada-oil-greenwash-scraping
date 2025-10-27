@@ -12,6 +12,7 @@ from selenium.webdriver import ActionChains
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.webdriver.support.wait import WebDriverWait
 from selenium.common.exceptions import ElementNotInteractableException
+from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import csv
 from datetime import datetime
@@ -155,6 +156,50 @@ def fetch_imperial_article_urls(url, is_archive):
     append_csv(new_rows, is_archive)
 
 
+def fetch_enbridge_article_urls(url, is_archive, is_root):
+    driver.get(url)
+    if not is_archive and is_root:
+        try:
+            shadow_host = WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.ID, "usercentrics-root"))
+            )
+            shadow_root = driver.execute_script(
+                "return arguments[0].shadowRoot", shadow_host
+            )
+
+            accept_cookies = shadow_root.find_element(
+                By.CSS_SELECTOR, "button[data-testid='uc-accept-all-button']"
+            )
+            accept_cookies.click()
+        except:
+            print(f"An error occurred while trying to accept site cookies for {url}")
+    news_items_div = driver.find_element(By.CLASS_NAME, "news-items")
+    link_elems = news_items_div.find_elements(By.TAG_NAME, "a")
+    new_rows = [
+        {
+            "Organization": "Enbridge",
+            "Link": link_elem.get_attribute("href"),
+            "Date Scraped": date.strftime("%m/%d/%Y"),
+            "Type": "html",
+        }
+        for link_elem in link_elems
+    ]
+    if is_root:
+        year_tab_div = driver.find_element(By.CLASS_NAME, "year-tabs")
+        year_tabs = year_tab_div.find_elements(By.TAG_NAME, "a")
+        year_urls = [year_tab.get_attribute("href") for year_tab in year_tabs]
+        year_urls = year_urls[1:]
+        if is_archive:
+            year_urls = [fetch_wayback_url(year_url) for year_url in year_urls]
+        new_rows.extend(
+            row
+            for year_url in year_urls
+            for row in fetch_enbridge_article_urls(year_url, is_archive, False)
+        )
+        append_csv(new_rows, is_archive)
+    return new_rows
+
+
 def fetch_urls():
     for org, url in URLS.items():
         URLS[org]["archived"] = fetch_wayback_url(url["current"])
@@ -164,13 +209,19 @@ def fetch_urls():
             case "Suncor Energy":
                 fetch_suncor_article_urls(url["current"], False)
                 fetch_suncor_article_urls(url["archived"], True)
-                print("Fetched Suncor articles!")
+                print("Fetched Suncor Energy articles!")
             case "Pembina Pipeline":
                 fetch_pembina_article_urls(url["current"], False)
                 fetch_pembina_article_urls(url["archived"], True)
+                print("Fetched Pembina Pipeline articles!")
             case "Imperial Oil":
                 fetch_imperial_article_urls(url["current"], False)
                 fetch_imperial_article_urls(url["archived"], True)
+                print("Fetched Imperial Oil articles!")
+            case "Enbridge":
+                fetch_enbridge_article_urls(url["current"], False, True)
+                fetch_enbridge_article_urls(url["archived"], True, True)
+                print("Fetched Enbridge articles!")
             case _:
                 print(f"URL fetching for {org} not implemented yet!")
 
