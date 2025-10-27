@@ -11,6 +11,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver import ActionChains
 from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.webdriver.support.wait import WebDriverWait
+from selenium.common.exceptions import ElementNotInteractableException
 from bs4 import BeautifulSoup
 import csv
 from datetime import datetime
@@ -108,6 +109,52 @@ def fetch_pembina_article_urls(url, is_archive):
     append_csv(new_rows, is_archive)
 
 
+def fetch_imperial_article_urls(url, is_archive):
+    driver.get(url)
+    if not is_archive:
+        close_popup_btn = driver.find_element(By.CLASS_NAME, "fancybox-close-small")
+        close_popup_btn.click()
+    year_filter = driver.find_element(By.ID, "newsYear")
+    year_options = year_filter.find_elements(By.TAG_NAME, "option")
+    new_rows = []
+    for year in year_options:
+        driver.execute_script(
+            """
+        var select = arguments[0];
+        var value = arguments[1];
+        select.value = value;
+        select.dispatchEvent(new Event('change'));
+        """,
+            year_filter,
+            year.get_attribute("value"),
+        )
+        time.sleep(2)
+        while True:
+            try:
+                next_page_btn = driver.find_element(By.CLASS_NAME, "pager-next")
+                if "pager-disabled" in next_page_btn.get_attribute("class"):
+                    break
+                driver.execute_script(
+                    "arguments[0].scrollIntoView(true);", next_page_btn
+                )
+                driver.execute_script("arguments[0].click()", next_page_btn)
+            except Exception as ex:
+                print(f"An error occurred while trying to scrape {url}: {ex.args}")
+        year_link_elems = driver.find_elements(By.CLASS_NAME, "module_headline-link")
+        new_rows.extend(
+            [
+                {
+                    "Organization": "Imperial Oil",
+                    "Link": link_elem.get_attribute("href"),
+                    "Date Scraped": date.strftime("%m/%d/%Y"),
+                    "Type": "html",
+                }
+                for link_elem in year_link_elems
+            ]
+        )
+    append_csv(new_rows, is_archive)
+
+
 def fetch_urls():
     for org, url in URLS.items():
         URLS[org]["archived"] = fetch_wayback_url(url["current"])
@@ -121,6 +168,9 @@ def fetch_urls():
             case "Pembina Pipeline":
                 fetch_pembina_article_urls(url["current"], False)
                 fetch_pembina_article_urls(url["archived"], True)
+            case "Imperial Oil":
+                fetch_imperial_article_urls(url["current"], False)
+                fetch_imperial_article_urls(url["archived"], True)
             case _:
                 print(f"URL fetching for {org} not implemented yet!")
 
