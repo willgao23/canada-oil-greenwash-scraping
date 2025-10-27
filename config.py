@@ -8,5 +8,8 @@ URLS = {
     "Pembina Pipeline": {
         "current": "https://www.pembina.com/media-centre/news-releases"
     },
+    "Imperial Oil": {
+        "current": "https://news.imperialoil.ca/news-releases/default.aspx"
+    },
 }
 LINK_CSV_FIELDS = ["Organization", "Link", "Date Scraped", "Type"]
