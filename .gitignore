@@ -9,6 +9,9 @@ __pycache__/
 # archive
 archive.py
 
+# venv
+greenwash-scraping/
+
 # Distribution / packaging
 .Python
 build/
