@@ -5,5 +5,8 @@ URLS = {
     "Suncor Energy": {
         "current": "https://www.suncor.com/en-ca/news-and-stories/news-releases"
     },
+    "Pembina Pipeline": {
+        "current": "https://www.pembina.com/media-centre/news-releases"
+    },
 }
 LINK_CSV_FIELDS = ["Organization", "Link", "Date Scraped", "Type"]

@@ -59,6 +59,20 @@ def fetch_wayback_url(url, max_retries=5):
             time.sleep(2)
 
 
+def append_csv(new_rows, is_archive):
+    link_csv = (
+        "output/links/wayback_article_links.csv"
+        if is_archive
+        else "output/links/article_links.csv"
+    )
+
+    with open(link_csv, "a", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=LINK_CSV_FIELDS)
+        if os.stat(link_csv).st_size == 0:
+            writer.writeheader()
+        writer.writerows(new_rows)
+
+
 def fetch_suncor_article_urls(url, is_archive):
     driver.get(url)
     link_elems = driver.find_elements(By.CLASS_NAME, "download-embed__link")
@@ -76,17 +90,22 @@ def fetch_suncor_article_urls(url, is_archive):
         }
         for link_elem in link_elems
     ]
-    link_csv = (
-        "output/links/wayback_article_links.csv"
-        if is_archive
-        else "output/links/article_links.csv"
-    )
-    with open(link_csv, "a", newline="") as csvfile:
-        writer = csv.DictWriter(csvfile, fieldnames=LINK_CSV_FIELDS)
-        if os.stat(link_csv).st_size == 0:
-            writer.writeheader()
-        writer.writerows(new_rows)
-    return
+    append_csv(new_rows, is_archive)
+
+
+def fetch_pembina_article_urls(url, is_archive):
+    driver.get(url)
+    link_elems = driver.find_elements(By.CLASS_NAME, "news-item")
+    new_rows = [
+        {
+            "Organization": "Pembina Pipeline",
+            "Link": link_elem.get_attribute("href"),
+            "Date Scraped": date.strftime("%m/%d/%Y"),
+            "Type": "html",
+        }
+        for link_elem in link_elems
+    ]
+    append_csv(new_rows, is_archive)
 
 
 def fetch_urls():
@@ -99,6 +118,9 @@ def fetch_urls():
                 fetch_suncor_article_urls(url["current"], False)
                 fetch_suncor_article_urls(url["archived"], True)
                 print("Fetched Suncor articles!")
+            case "Pembina Pipeline":
+                fetch_pembina_article_urls(url["current"], False)
+                fetch_pembina_article_urls(url["archived"], True)
             case _:
                 print(f"URL fetching for {org} not implemented yet!")
 
