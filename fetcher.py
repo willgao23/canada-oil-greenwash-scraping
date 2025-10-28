@@ -8,12 +8,8 @@ from config import (
 import requests
 from selenium import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver import ActionChains
-from selenium.webdriver.common.actions.wheel_input import ScrollOrigin
 from selenium.webdriver.support.wait import WebDriverWait
-from selenium.common.exceptions import ElementNotInteractableException
 from selenium.webdriver.support import expected_conditions as EC
-from bs4 import BeautifulSoup
 import csv
 from datetime import datetime
 import time
@@ -221,6 +217,69 @@ def fetch_cnrl_article_urls(url, is_archive):
     append_csv(new_rows, is_archive)
 
 
+def fetch_shell_article_urls(url, is_archive, is_root):
+    driver.get(url)
+    if is_archive:
+        body_container_div = driver.find_element(By.CLASS_NAME, "promo-list__base")
+        item_container_divs = body_container_div.find_elements(
+            By.CLASS_NAME, "promo-list__text"
+        )
+        link_elems = [
+            item_container_div.find_element(By.TAG_NAME, "a")
+            for item_container_div in item_container_divs
+        ]
+        new_rows = [
+            {
+                "Organization": "Shell Canada",
+                "Link": link_elem.get_attribute("href"),
+                "Date Scraped": date.strftime("%m/%d/%Y"),
+                "Type": "html",
+            }
+            for link_elem in link_elems
+        ]
+        if is_root:
+            expand_archive = driver.find_element(
+                By.CLASS_NAME, "expandable-list__item "
+            )
+            expand_archive.click()
+            container_div = driver.find_element(
+                By.CLASS_NAME, "expandable-list__item-body"
+            )
+            archive_link_elems = container_div.find_elements(By.TAG_NAME, "a")
+            archive_urls = [
+                archive_link_elem.get_attribute("href")
+                for archive_link_elem in archive_link_elems
+            ]
+            archive_urls = [
+                fetch_wayback_url(archive_url) for archive_url in archive_urls
+            ]
+            new_rows.extend(
+                row
+                for archive_url in archive_urls
+                for row in fetch_shell_article_urls(archive_url, is_archive, False)
+            )
+            append_csv(new_rows, is_archive)
+        return new_rows
+    else:
+        container_divs = driver.find_elements(
+            By.CSS_SELECTOR, "div[data-name='PressRelease']"
+        )
+        link_elems = [
+            container_div.find_element(By.TAG_NAME, "a")
+            for container_div in container_divs
+        ]
+        new_rows = [
+            {
+                "Organization": "Shell Canada",
+                "Link": link_elem.get_attribute("href"),
+                "Date Scraped": date.strftime("%m/%d/%Y"),
+                "Type": "html",
+            }
+            for link_elem in link_elems
+        ]
+        append_csv(new_rows, is_archive)
+
+
 def fetch_urls():
     for org, url in URLS.items():
         URLS[org]["archived"] = fetch_wayback_url(url["current"])
@@ -247,6 +306,10 @@ def fetch_urls():
                 fetch_cnrl_article_urls(url["current"], False)
                 fetch_cnrl_article_urls(url["archived"], True)
                 print("Fetched Canadian Natural Resources URLs!")
+            case "Shell Canada":
+                fetch_shell_article_urls(url["current"], False, True)
+                fetch_shell_article_urls(url["archived"], True, True)
+                print("Fetched Shell Canada URLs!")
             case _:
                 print(f"URL fetching for {org} not implemented yet!")
 

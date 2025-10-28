@@ -15,5 +15,6 @@ URLS = {
     "Canadian Natural Resources": {
         "current": "https://www.cnrl.com/investors/news-releases/"
     },
+    "Shell Canada": {"current": "https://www.shell.ca/en_ca/media/news-releases.html"},
 }
 LINK_CSV_FIELDS = ["Organization", "Link", "Date Scraped", "Type"]
