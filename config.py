@@ -12,5 +12,8 @@ URLS = {
         "current": "https://news.imperialoil.ca/news-releases/default.aspx"
     },
     "Enbridge": {"current": "https://www.enbridge.com/media-center/news"},
+    "Canadian Natural Resources": {
+        "current": "https://www.cnrl.com/investors/news-releases/"
+    },
 }
 LINK_CSV_FIELDS = ["Organization", "Link", "Date Scraped", "Type"]
