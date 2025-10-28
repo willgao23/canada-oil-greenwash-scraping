@@ -200,6 +200,27 @@ def fetch_enbridge_article_urls(url, is_archive, is_root):
     return new_rows
 
 
+def fetch_cnrl_article_urls(url, is_archive):
+    driver.get(url)
+    accept_cookies_btn = driver.find_element(By.CLASS_NAME, "cky-btn-accept")
+    accept_cookies_btn.click()
+    container_div = driver.find_element(By.CLASS_NAME, "wp-block-nf-cnrl-tabs")
+    new_rows = []
+    link_elems = container_div.find_elements(By.TAG_NAME, "cnrl-news-release-card")
+    new_rows.extend(
+        [
+            {
+                "Organization": "Canadian Natural Resources",
+                "Link": f"https://www.cnrl.com{link_elem.get_attribute('link')}",
+                "Date Scraped": date.strftime("%m/%d/%Y"),
+                "Type": "pdf",
+            }
+            for link_elem in link_elems
+        ]
+    )
+    append_csv(new_rows, is_archive)
+
+
 def fetch_urls():
     for org, url in URLS.items():
         URLS[org]["archived"] = fetch_wayback_url(url["current"])
@@ -209,19 +230,23 @@ def fetch_urls():
             case "Suncor Energy":
                 fetch_suncor_article_urls(url["current"], False)
                 fetch_suncor_article_urls(url["archived"], True)
-                print("Fetched Suncor Energy articles!")
+                print("Fetched Suncor Energy URLs!")
             case "Pembina Pipeline":
                 fetch_pembina_article_urls(url["current"], False)
                 fetch_pembina_article_urls(url["archived"], True)
-                print("Fetched Pembina Pipeline articles!")
+                print("Fetched Pembina Pipeline URLs!")
             case "Imperial Oil":
                 fetch_imperial_article_urls(url["current"], False)
                 fetch_imperial_article_urls(url["archived"], True)
-                print("Fetched Imperial Oil articles!")
+                print("Fetched Imperial Oil URLs!")
             case "Enbridge":
                 fetch_enbridge_article_urls(url["current"], False, True)
                 fetch_enbridge_article_urls(url["archived"], True, True)
-                print("Fetched Enbridge articles!")
+                print("Fetched Enbridge URLs!")
+            case "Canadian Natural Resources":
+                fetch_cnrl_article_urls(url["current"], False)
+                fetch_cnrl_article_urls(url["archived"], True)
+                print("Fetched Canadian Natural Resources URLs!")
             case _:
                 print(f"URL fetching for {org} not implemented yet!")
 
