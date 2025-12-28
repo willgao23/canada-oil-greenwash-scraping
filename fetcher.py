@@ -137,7 +137,12 @@ def fetch_imperial_article_urls(url, is_archive):
                 driver.execute_script("arguments[0].click()", next_page_btn)
             except Exception as ex:
                 print(f"An error occurred while trying to scrape {url}: {ex.args}")
-        year_link_elems = driver.find_elements(By.CLASS_NAME, "module_headline-link")
+        english_links = driver.find_elements(By.CSS_SELECTOR, "div.module_item.en")
+        year_link_elems = []
+        for english_link in english_links:
+            year_link_elems.append(
+                english_link.find_element(By.CLASS_NAME, "module_headline-link")
+            )
         new_rows.extend(
             [
                 {
