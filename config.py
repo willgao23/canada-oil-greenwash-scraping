@@ -18,3 +18,16 @@ URLS = {
     "Shell Canada": {"current": "https://www.shell.ca/en_ca/media/news-releases.html"},
 }
 LINK_CSV_FIELDS = ["Organization", "Link", "Date Scraped", "Type"]
+ORG_NAMES = [
+    "Suncor Energy",
+    "Pembina Pipeline",
+    "Imperial Oil",
+    "Enbridge",
+    "Canadian Natural Resources",
+    "Shell Canada",
+]
+WAYBACK_ORGS = [
+    "Suncor Energy",
+    "Shell Canada",
+]  # organizations that have stopped hosting links found in the wayback archive completely
+ARTICLE_CSV_FIELDS = ["Organization", "Title", "Date", "Content"]
