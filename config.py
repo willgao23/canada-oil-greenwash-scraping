@@ -30,4 +30,4 @@ WAYBACK_ORGS = [
     "Suncor Energy",
     "Shell Canada",
 ]  # organizations that have stopped hosting links found in the wayback archive completely
-ARTICLE_CSV_FIELDS = ["Organization", "Title", "Date", "Content"]
+ARTICLE_CSV_FIELDS = ["Organization", "Link", "Content"]

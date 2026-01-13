@@ -3,6 +3,5 @@ beautifulsoup4
 selenium
 pandas
 tqdm
-pypdf
-textract
-nltk
+spacy
+spacy-layout
