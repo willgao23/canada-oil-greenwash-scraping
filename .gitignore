@@ -8,7 +8,7 @@ __pycache__/
 
 # archive
 archive.py
-*archived*
+*archived*.csv
 
 # venv
 greenwash-scraping/
