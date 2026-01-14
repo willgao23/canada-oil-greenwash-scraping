@@ -28,6 +28,7 @@ ORG_NAMES = [
 ]
 WAYBACK_ORGS = [
     "Suncor Energy",
+    "Imperial Oil",
     "Shell Canada",
 ]  # organizations that have stopped hosting links found in the wayback archive completely
 ARTICLE_CSV_FIELDS = ["Organization", "Link", "Content"]

@@ -13,7 +13,16 @@ import re
 import spacy
 from spacy_layout import spaCyLayout
 import os
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.chrome.options import Options
 
+options = Options()
+options.page_load_strategy = "eager"
+driver = webdriver.Chrome(options=options)
+driver.implicitly_wait(5)
 session = requests.Session()
 session.headers.update(
     {
@@ -22,6 +31,25 @@ session.headers.update(
 )
 nlp = spacy.load("en_core_web_sm")
 layout = spaCyLayout(nlp)
+
+
+def get_url_with_retry(url, max_retries=1):
+    retries = 0
+    wait_time = 5
+    while retries <= max_retries:
+        try:
+            print(f"Attempt {retries + 1}: Loading {url}")
+            driver.get(url)
+            return True
+        except:
+            retries += 1
+            if retries <= max_retries:
+                time.sleep(wait_time)
+                wait_time *= 2
+                print("Timeout reached. Reloading...")
+            else:
+                print("Still not loading. Skipping...")
+                return False
 
 
 def read_suncor_articles(urls, is_archive):
@@ -77,7 +105,66 @@ def read_pembina_articles(urls, is_archive):
             print(f"{e}: {url}")
             continue
     append_csv(new_rows, is_archive)
-    return
+
+
+def read_imperial_articles(urls, is_archive):
+    new_rows = []
+    unread = [12, 26, 31, 35, 42, 60, 68, 75, 80, 108, 116]
+    for url in tqdm(unread):
+        try:
+            max_retries = 5 if is_archive else 1
+            get_url_with_retry(urls[url], max_retries)
+            try:
+                close_popup_btn = WebDriverWait(driver, 0.5).until(
+                    EC.element_to_be_clickable(
+                        (By.XPATH, "//button[contains(@class, 'fancybox-close-small')]")
+                    )
+                )
+                close_popup_btn.click()
+            except:
+                print(f"No disclaimer pop-up: {url}")
+            title = driver.find_element(
+                By.XPATH, "//h3[contains(@class, 'module-details_title')]"
+            ).get_attribute("innerText")
+            content_container = driver.find_element(By.CLASS_NAME, "module_body")
+            html_content = content_container.get_attribute("innerHTML")
+            soup = BeautifulSoup(html_content, features="html.parser")
+            inner_div = soup.find("div", class_="q4default")
+            content_blocks = (
+                inner_div.find_all(["p", "ul", "ol", "div"], recursive=False)
+                if inner_div
+                else soup.find_all(["p", "ul", "ol", "div"], recursive=False)
+            )
+            full_content = [title]
+            for content_block in content_blocks:
+                if (
+                    content_block.name == "table"
+                    or "table-wrapper" in content_block.get("class", [])
+                ):
+                    continue
+                li_elems = content_block.find_all("li", recursive=True)
+                if li_elems:
+                    for li_elem in li_elems:
+                        content = li_elem.text.strip()
+                        content = content.replace("\n", " ")
+                        content = re.sub("\s+", " ", content)
+                        full_content.append(content)
+                    continue
+                content = content_block.text.strip()
+                content = content.replace("\n", " ")
+                content = re.sub("\s+", " ", content)
+                full_content.append(content)
+            new_rows.append(
+                {
+                    "Organization": "Imperial Oil",
+                    "Link": url,
+                    "Content": "\n".join(full_content),
+                }
+            )
+        except Exception as e:
+            print(f"{e}: {url}")
+            continue
+    append_csv(new_rows, is_archive)
 
 
 def append_csv(new_rows, is_archive):
@@ -94,35 +181,6 @@ def append_csv(new_rows, is_archive):
         writer.writerows(new_rows)
 
 
-def fetch_wayback_url(url, max_retries=5):
-    for attempt in range(max_retries):
-        try:
-            payload = {
-                "url": url,
-                "output": "json",
-                "limit": -1,
-            }
-            res = session.get(WAYBACK_ENDPOINT, params=payload, timeout=25)
-            res.raise_for_status()
-
-            if res.status_code == 200:
-                data = res.json()
-                header = data[0]
-                values = data[1]
-                record = dict(zip(header, values))
-                return f"{WAYBACK_PREFIX}/{record['timestamp']}/{record['original']}"
-            elif res.status_code == 429:
-                wait = 2**attempt + random.uniform(0, 3)
-                print(f"Rate limited (429). Waiting {wait:.1f}s before retrying...")
-                time.sleep(wait)
-            else:
-                print(f"Unexpected {res.status_code}: {res.text}")
-                break
-        except Exception as e:
-            print(f"Error fetching {url}: {e}")
-            time.sleep(2)
-
-
 def read_urls():
     curr_to_read = pd.read_csv("output/links/article_links.csv")
     archived_to_read = pd.read_csv("output/links/merged_wayback_article_links.csv")
@@ -134,11 +192,15 @@ def read_urls():
             "Link"
         ].to_list()
         match org:
-            # case "Suncor Energy":
-            # read_suncor_articles(curr_org_links, False)
-            # read_suncor_articles(archived_org_links, True)
+            case "Suncor Energy":
+                read_suncor_articles(curr_org_links, False)
+                read_suncor_articles(archived_org_links, True)
             case "Pembina Pipeline":
                 read_pembina_articles(curr_org_links, False)
                 read_pembina_articles(archived_org_links, True)
+            case "Imperial Oil":
+                read_imperial_articles(curr_org_links, False)
+                read_imperial_articles(archived_org_links, True)
             case _:
                 print(f"Article reading for {org} not implemented yet!")
+    driver.quit()
