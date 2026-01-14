@@ -427,10 +427,10 @@ def merge_unhosted_wayback():
 def fetch_pdfs():
     curr_links = pd.read_csv("output/links/article_links.csv")
     archived_links = pd.read_csv("output/links/wayback_article_links.csv")
-    # fetch_unhosted_wayback_links(archived_links)
-    # merge_unhosted_wayback()
+    fetch_unhosted_wayback_links(archived_links)
+    merge_unhosted_wayback()
     updated_archived_links = pd.read_csv(
         "output/links/merged_wayback_article_links.csv"
     )
-    # download_pdfs(curr_links, False)
+    download_pdfs(curr_links, False)
     download_pdfs(updated_archived_links, True)
