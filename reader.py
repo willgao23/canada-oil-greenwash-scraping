@@ -109,8 +109,7 @@ def read_pembina_articles(urls, is_archive):
 
 def read_imperial_articles(urls, is_archive):
     new_rows = []
-    unread = [12, 26, 31, 35, 42, 60, 68, 75, 80, 108, 116]
-    for url in tqdm(unread):
+    for url in tqdm(urls):
         try:
             max_retries = 5 if is_archive else 1
             get_url_with_retry(urls[url], max_retries)
@@ -167,6 +166,50 @@ def read_imperial_articles(urls, is_archive):
     append_csv(new_rows, is_archive)
 
 
+def read_enbridge_articles(urls, is_archive):
+    new_rows = []
+    for url in tqdm(urls):
+        try:
+            resp = session.get(url, timeout=10)
+            soup = BeautifulSoup(resp.text, features="html.parser")
+            main = soup.find("main")
+            title = main.find("h1", id="startMainContent")
+            content_container = main.find("div", recursive=False)
+            content_blocks = content_container.find_all(
+                ["p", "ul", "ol"], recursive=False
+            )
+            full_content = [title.text]
+            for content_block in content_blocks:
+                li_elems = content_block.find_all("li", recursive=True)
+                if li_elems:
+                    for li_elem in li_elems:
+                        content = li_elem.text.strip()
+                        content = content.replace("\n", " ")
+                        content = re.sub("\s+", " ", content)
+                        full_content.append(content)
+                    continue
+                content = content_block.text.strip()
+                content = content.replace("\n", " ")
+                content = re.sub("\s+", " ", content)
+                full_content.append(content)
+            new_rows.append(
+                {
+                    "Organization": "Enbridge",
+                    "Link": url,
+                    "Content": "\n".join(full_content),
+                }
+            )
+        except Exception as e:
+            print(f"{e}: {url}")
+            continue
+    append_csv(new_rows, is_archive)
+
+
+def read_cnrl_articles(urls, is_archive):
+
+    return
+
+
 def append_csv(new_rows, is_archive):
     article_csv = (
         "output/content/raw_wayback_content.csv"
@@ -201,6 +244,9 @@ def read_urls():
             case "Imperial Oil":
                 read_imperial_articles(curr_org_links, False)
                 read_imperial_articles(archived_org_links, True)
+            case "Enbridge":
+                read_enbridge_articles(curr_org_links, False)
+                read_enbridge_articles(archived_org_links, True)
             case _:
                 print(f"Article reading for {org} not implemented yet!")
     driver.quit()
