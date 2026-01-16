@@ -55,20 +55,24 @@ def get_url_with_retry(url, max_retries=1):
 def read_suncor_articles(urls, is_archive):
     new_rows = []
     for url in tqdm(urls):
-        pdf_name = re.findall("([^\/?]+)(?=\?)", url)[0]
-        pdf_loc = (
-            f"./output/pdfs/Suncor Energy/archived/{pdf_name}"
-            if is_archive
-            else f"./output/pdfs/Suncor Energy/current/{pdf_name}"
-        )
-        doc = layout(pdf_loc)
-        new_rows.append(
-            {
-                "Organization": "Suncor Energy",
-                "Link": url,
-                "Content": doc.text,
-            }
-        )
+        try:
+            pdf_name = re.findall("([^\/?]+)(?=\?)", url)[0]
+            pdf_loc = (
+                f"./output/pdfs/Suncor Energy/archived/{pdf_name}"
+                if is_archive
+                else f"./output/pdfs/Suncor Energy/current/{pdf_name}"
+            )
+            doc = layout(pdf_loc)
+            new_rows.append(
+                {
+                    "Organization": "Suncor Energy",
+                    "Link": url,
+                    "Content": doc.text,
+                }
+            )
+        except Exception as e:
+            print(f"{e}: {url}")
+            continue
     append_csv(new_rows, is_archive)
 
 
@@ -112,7 +116,7 @@ def read_imperial_articles(urls, is_archive):
     for url in tqdm(urls):
         try:
             max_retries = 5 if is_archive else 1
-            get_url_with_retry(urls[url], max_retries)
+            get_url_with_retry(url, max_retries)
             try:
                 close_popup_btn = WebDriverWait(driver, 0.5).until(
                     EC.element_to_be_clickable(
@@ -206,8 +210,119 @@ def read_enbridge_articles(urls, is_archive):
 
 
 def read_cnrl_articles(urls, is_archive):
+    new_rows = []
+    for url in tqdm(urls):
+        try:
+            pdf_name = re.findall("[^\/]+$", url)[0]
+            pdf_loc = (
+                f"./output/pdfs/Canadian Natural Resources/archived/{pdf_name}"
+                if is_archive
+                else f"./output/pdfs/Canadian Natural Resources/current/{pdf_name}"
+            )
 
-    return
+            doc = layout(pdf_loc)
+            new_rows.append(
+                {
+                    "Organization": "Canadian Natural Resources",
+                    "Link": url,
+                    "Content": doc.text,
+                }
+            )
+        except Exception as e:
+            print(f"{e}: {url}")
+            continue
+    append_csv(new_rows, is_archive)
+
+
+def read_shell_articles(urls, is_archive):
+    new_rows = []
+    for url in tqdm(urls):
+        try:
+            max_retries = 5 if is_archive else 1
+            get_url_with_retry(url, max_retries)
+            try:
+                if is_archive:
+                    accept_cookies_btn = WebDriverWait(driver, 0.5).until(
+                        EC.element_to_be_clickable(
+                            (
+                                By.ID,
+                                "_evidon-banner-acceptbutton",
+                            )
+                        )
+                    )
+                    accept_cookies_btn.click()
+                else:
+                    time.sleep(2)
+                    script = """
+                    const root = document.querySelector('consent-banner')
+                                .shadowRoot
+                    const buttons = Array.from(root.querySelectorAll('button'));
+                    const acceptBtn = buttons.find(btn => btn.innerText.includes('Accept optional cookies'));
+
+                    if (acceptBtn) {
+                        acceptBtn.click();
+                        return "Clicked successfully";
+                    } else {
+                        return "Button not found";
+                    }
+                    """
+                    driver.execute_script(script)
+            except:
+                print(f"No cookies banner: {url}")
+            content_container = driver.find_element(By.ID, "main")
+            html_content = content_container.get_attribute("innerHTML")
+            soup = BeautifulSoup(html_content, features="html.parser")
+            if is_archive:
+                header_container = soup.find("div", class_="page-header__body")
+                title = header_container.find("h1")
+                blurb = soup.find_all(
+                    lambda tag: tag.name == "p"
+                    and "page-header__date" not in tag.get("class", [])
+                )[0]
+                content_containers = soup.find_all(
+                    lambda tag: (
+                        tag.name == "div"
+                        and all(
+                            c in tag.get("class", [])
+                            for c in ["textimage", "parbase", "section"]
+                        )
+                        and any(
+                            re.search(r"basecomponent", c) for c in tag.get("class", [])
+                        )
+                    )
+                )
+            else:
+                header_container = soup.find("div", attrs={"data-name": "PageHeader"})
+                title = header_container.find("h1")
+                blurb = header_container.find("p")
+                content_containers = soup.select("div[data-name*='PromoSimple']")
+            full_content = [title.text.strip(), blurb.text.strip()]
+            for content_container in content_containers:
+                content = content_container.find_all(["p", "ul", "ol", "h3"])
+                for elem in content:
+                    li_elems = elem.find_all("li", recursive=True)
+                    if li_elems:
+                        for li_elem in li_elems:
+                            content = li_elem.text.strip()
+                            content = content.replace("\n", " ")
+                            content = re.sub("\s+", " ", content)
+                            full_content.append(content)
+                        continue
+                    content = elem.text.strip()
+                    content = content.replace("\n", " ")
+                    content = re.sub("\s+", " ", content)
+                    full_content.append(content)
+            new_rows.append(
+                {
+                    "Organization": "Shell Canada",
+                    "Link": url,
+                    "Content": "\n".join(full_content),
+                }
+            )
+        except Exception as e:
+            print(f"{e}: {url}")
+            continue
+    append_csv(new_rows, is_archive)
 
 
 def append_csv(new_rows, is_archive):
@@ -247,6 +362,12 @@ def read_urls():
             case "Enbridge":
                 read_enbridge_articles(curr_org_links, False)
                 read_enbridge_articles(archived_org_links, True)
+            case "Canadian Natural Resources":
+                read_cnrl_articles(curr_org_links, False)
+                read_cnrl_articles(archived_org_links, True)
+            case "Shell Canada":
+                read_shell_articles(curr_org_links, False)
+                read_shell_articles(archived_org_links, True)
             case _:
                 print(f"Article reading for {org} not implemented yet!")
     driver.quit()
