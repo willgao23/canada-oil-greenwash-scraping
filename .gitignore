@@ -10,6 +10,9 @@ __pycache__/
 archive.py
 *archived*.csv
 
+# tesseract install
+*tesserocr*
+
 # venv
 greenwash-scraping/
 
