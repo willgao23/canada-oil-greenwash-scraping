@@ -12,6 +12,11 @@ import random
 import re
 import spacy
 from spacy_layout import spaCyLayout
+from docling.datamodel.base_models import InputFormat
+from docling.document_converter import FormatOption
+from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
+from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
+from docling.datamodel.pipeline_options import PdfPipelineOptions, TesseractOcrOptions
 import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -30,7 +35,17 @@ session.headers.update(
     }
 )
 nlp = spacy.load("en_core_web_sm")
-layout = spaCyLayout(nlp)
+pipeline_options = PdfPipelineOptions()
+pipeline_options.do_ocr = True
+pipeline_options.do_table_structure = True
+os.environ["TESSDATA_PREFIX"] = r"C:\Program Files\Tesseract-OCR\tessdata"
+ocr_options = TesseractOcrOptions(force_full_page_ocr=True)
+pipeline_options.ocr_options = ocr_options
+pdf_format_option = FormatOption(
+    pipeline_cls=StandardPdfPipeline,
+    backend=PyPdfiumDocumentBackend,
+    pipeline_options=pipeline_options,
+)
 
 
 def get_url_with_retry(url, max_retries=1):
@@ -52,7 +67,12 @@ def get_url_with_retry(url, max_retries=1):
                 return False
 
 
-def read_suncor_articles(urls, is_archive):
+def read_suncor_articles(urls, is_archive, is_retry):
+    layout = (
+        spaCyLayout(nlp, docling_options={InputFormat.PDF: pdf_format_option})
+        if is_retry
+        else spaCyLayout(nlp)
+    )  # force OCR on retry, otherwise rely on text metadata
     new_rows = []
     for url in tqdm(urls):
         try:
@@ -73,7 +93,10 @@ def read_suncor_articles(urls, is_archive):
         except Exception as e:
             print(f"{e}: {url}")
             continue
-    append_csv(new_rows, is_archive)
+    if is_retry:
+        merge_csv(new_rows, is_archive)
+    else:
+        append_csv(new_rows, is_archive)
 
 
 def read_pembina_articles(urls, is_archive):
@@ -209,7 +232,12 @@ def read_enbridge_articles(urls, is_archive):
     append_csv(new_rows, is_archive)
 
 
-def read_cnrl_articles(urls, is_archive):
+def read_cnrl_articles(urls, is_archive, is_retry):
+    layout = (
+        spaCyLayout(nlp, docling_options={InputFormat.PDF: pdf_format_option})
+        if is_retry
+        else spaCyLayout(nlp)
+    )  # force OCR on retry, otherwise rely on text metadata
     new_rows = []
     for url in tqdm(urls):
         try:
@@ -231,7 +259,10 @@ def read_cnrl_articles(urls, is_archive):
         except Exception as e:
             print(f"{e}: {url}")
             continue
-    append_csv(new_rows, is_archive)
+    if is_retry:
+        merge_csv(new_rows, is_archive)
+    else:
+        append_csv(new_rows, is_archive)
 
 
 def read_shell_articles(urls, is_archive):
@@ -339,6 +370,24 @@ def append_csv(new_rows, is_archive):
         writer.writerows(new_rows)
 
 
+def merge_csv(new_rows, is_archive):
+    article_csv = (
+        "output/content/raw_wayback_content.csv"
+        if is_archive
+        else "output/content/raw_content.csv"
+    )
+    new_df = pd.DataFrame(new_rows)
+    if os.path.exists(article_csv):
+        old_df = pd.read_csv(article_csv)
+        combined_df = pd.concat([old_df, new_df], ignore_index=True)
+        final_df = combined_df.drop_duplicates(subset=["Link"], keep="last")
+    else:
+        final_df = new_df
+
+    final_df.to_csv(article_csv, index=False)
+    print(f"Successfully merged {len(new_rows)} rows into {article_csv}")
+
+
 def read_urls():
     curr_to_read = pd.read_csv("output/links/article_links.csv")
     archived_to_read = pd.read_csv("output/links/merged_wayback_article_links.csv")
@@ -351,8 +400,8 @@ def read_urls():
         ].to_list()
         match org:
             case "Suncor Energy":
-                read_suncor_articles(curr_org_links, False)
-                read_suncor_articles(archived_org_links, True)
+                read_suncor_articles(curr_org_links, False, False)
+                read_suncor_articles(archived_org_links, True, False)
             case "Pembina Pipeline":
                 read_pembina_articles(curr_org_links, False)
                 read_pembina_articles(archived_org_links, True)
@@ -363,11 +412,44 @@ def read_urls():
                 read_enbridge_articles(curr_org_links, False)
                 read_enbridge_articles(archived_org_links, True)
             case "Canadian Natural Resources":
-                read_cnrl_articles(curr_org_links, False)
-                read_cnrl_articles(archived_org_links, True)
+                read_cnrl_articles(curr_org_links, False, False)
+                read_cnrl_articles(archived_org_links, True, False)
             case "Shell Canada":
                 read_shell_articles(curr_org_links, False)
                 read_shell_articles(archived_org_links, True)
             case _:
                 print(f"Article reading for {org} not implemented yet!")
     driver.quit()
+
+
+def retry_failed_pdfs():
+    raw_content = pd.read_csv("output/content/raw_content.csv")
+    raw_wayback_content = pd.read_csv("output/content/raw_wayback_content.csv")
+    for org in ORG_NAMES:
+        content_links = raw_content[raw_content["Organization"] == org][
+            "Link"
+        ].to_list()
+        wayback_links = raw_wayback_content[raw_wayback_content["Organization"] == org][
+            "Link"
+        ].to_list()
+        scrape_func = (
+            read_suncor_articles if org == "Suncor Energy" else read_cnrl_articles
+        )
+        if org == "Suncor Energy" or org == "Canadian Natural Resources":
+            urls = []
+            for l in content_links:
+                entry = raw_content[raw_content["Link"] == l].values[-1][-1]
+                if re.search("GLYPH", entry):
+                    urls.append(l)
+            print(f"{org}: {len(urls)} PDFs to retry")
+            scrape_func(urls, False, True)
+
+            urls = []
+            for l in wayback_links:
+                entry = raw_wayback_content[raw_wayback_content["Link"] == l].values[
+                    -1
+                ][-1]
+                if re.search("GLYPH", entry):
+                    urls.append(l)
+            print(f"{org}: {len(urls)} PDFs to retry")
+            scrape_func(urls, True, True)

@@ -6,4 +6,6 @@ if __name__ == "__main__":
     # fetcher.fetch_urls()
     # fetcher.fetch_pdfs()
     print("Links and PDFs Fetched!")
-    reader.read_urls()
+    # reader.read_urls()
+    reader.retry_failed_pdfs()
+    print("Raw Text Scraped!")
