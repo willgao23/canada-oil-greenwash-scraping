@@ -6,3 +6,4 @@ tqdm
 spacy
 spacy-layout
 onnxruntime
+nltk

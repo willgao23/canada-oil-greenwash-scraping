@@ -34,7 +34,7 @@ session.headers.update(
         "User-Agent": "Mozilla/5.0 (compatible; ResearchBot/1.0; +https://example.org/contact)"
     }
 )
-nlp = spacy.load("en_core_web_sm")
+nlp = spacy.load("en_core_web_lg")
 pipeline_options = PdfPipelineOptions()
 pipeline_options.do_ocr = True
 pipeline_options.do_table_structure = True
