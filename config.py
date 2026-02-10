@@ -33,3 +33,4 @@ WAYBACK_ORGS = [
 ]  # organizations that have stopped hosting links found in the wayback archive completely
 ARTICLE_CSV_FIELDS = ["Organization", "Link", "Content"]
 SENTENCE_CSV_FIELDS = ["Organization", "Link", "Sentence"]
+LABEL_CSV_FIELDS = SENTENCE_CSV_FIELDS + ["isWayback", "Label"]
