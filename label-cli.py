@@ -8,7 +8,9 @@ NUM_TRAIN = 1000
 
 
 def prompt_user_labelling(to_label):
-    with open("output/labelled/labelled.csv", "a", newline="") as csvfile:
+    with open(
+        "output/labelled/labelled.csv", "a", newline="", encoding="utf-8"
+    ) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=LABEL_CSV_FIELDS)
         if os.stat("output/labelled/labelled.csv").st_size == 0:
             writer.writeheader()
@@ -33,17 +35,25 @@ def prompt_user_labelling(to_label):
 
 
 def label_data():
-    sentences_df = pd.read_csv("output/processed/sentences.csv")
-    wayback_sentences_df = pd.read_csv("output/processed/wayback_sentences.csv")
-    sentences_df["isWayback"] = False
-    wayback_sentences_df["isWayback"] = True
-    combined_df = pd.concat([sentences_df, wayback_sentences_df], ignore_index=True)
-    combined_df["Label"] = np.nan
-    combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)
-    prompt_user_labelling(combined_df.iloc[:NUM_TRAIN])
-    combined_df.iloc[NUM_TRAIN:].to_csv(
-        "output/labelled/unlabelled.csv", index=False, sep=",", encoding="utf-8"
-    )
+    df = pd.read_csv("output/labelled/labelled.csv")
+    if not os.path.exists("output/labelled/labelled.csv") or df.empty:
+        sentences_df = pd.read_csv("output/processed/sentences.csv")
+        wayback_sentences_df = pd.read_csv("output/processed/wayback_sentences.csv")
+        sentences_df["isWayback"] = False
+        wayback_sentences_df["isWayback"] = True
+        combined_df = pd.concat([sentences_df, wayback_sentences_df], ignore_index=True)
+        combined_df["Label"] = np.nan
+        combined_df = combined_df.sample(frac=1, random_state=42).reset_index(drop=True)
+        prompt_user_labelling(combined_df.iloc[:NUM_TRAIN])
+        combined_df.iloc[NUM_TRAIN:].to_csv(
+            "output/labelled/unlabelled.csv", index=False, sep=",", encoding="utf-8"
+        )
+    else:
+        combined_df = pd.read_csv("output/labelled/unlabelled.csv")
+        prompt_user_labelling(combined_df.iloc[:NUM_TRAIN])
+        combined_df.iloc[NUM_TRAIN:].to_csv(
+            "output/labelled/unlabelled.csv", index=False, sep=",", encoding="utf-8"
+        )
 
 
 if __name__ == "__main__":
