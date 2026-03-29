@@ -1,4 +1,4 @@
-from config import (
+from src.config import (
     URLS,
     WAYBACK_ENDPOINT,
     BILL_C59_ROYAL_ASSENT_DATE,
@@ -63,9 +63,9 @@ def fetch_wayback_url(url, max_retries=5, to=None, limit=-1):
 
 def append_csv(new_rows, is_archive):
     link_csv = (
-        "output/links/wayback_article_links.csv"
+        "../../output/links/wayback_article_links.csv"
         if is_archive
-        else "output/links/article_links.csv"
+        else "../../output/links/article_links.csv"
     )
 
     with open(link_csv, "a", newline="") as csvfile:
@@ -334,9 +334,9 @@ def download_pdfs(links, is_archive):
     pdf_orgs = list(pdf_links_df["Organization"].unique())
     for org in pdf_orgs:
         dir_path = (
-            f"output\pdfs\{org}\\archived"
+            f"..\..\output\pdfs\{org}\\archived"
             if is_archive
-            else f"output\pdfs\{org}\current"
+            else f"..\..\output\pdfs\{org}\current"
         )
         download_dir = os.path.abspath(dir_path)
         os.makedirs(download_dir, exist_ok=True)
@@ -391,7 +391,7 @@ def download_pdfs(links, is_archive):
 
 
 def fetch_unhosted_wayback_links(archived_links):
-    file_path = f"output/links/unhosted_wayback_links.csv"
+    file_path = f"../../output/links/unhosted_wayback_links.csv"
     with open(file_path, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["Wayback Link", "Link"])
@@ -410,8 +410,8 @@ def fetch_unhosted_wayback_links(archived_links):
 
 
 def merge_unhosted_wayback():
-    unhosted_df = pd.read_csv("output/links/unhosted_wayback_links.csv")
-    archived_links = pd.read_csv("output/links/wayback_article_links.csv")
+    unhosted_df = pd.read_csv("../../output/links/unhosted_wayback_links.csv")
+    archived_links = pd.read_csv("../../output/links/wayback_article_links.csv")
     merged_df = pd.merge(
         archived_links,
         unhosted_df,
@@ -421,16 +421,16 @@ def merge_unhosted_wayback():
     )
     merged_df["Link"] = merged_df["Wayback Link"].fillna(merged_df["Link"])
     final_df = merged_df.drop(columns=["Wayback Link"])
-    final_df.to_csv("output/links/merged_wayback_article_links.csv", index=False)
+    final_df.to_csv("../../output/links/merged_wayback_article_links.csv", index=False)
 
 
 def fetch_pdfs():
-    curr_links = pd.read_csv("output/links/article_links.csv")
-    archived_links = pd.read_csv("output/links/wayback_article_links.csv")
+    curr_links = pd.read_csv("../../output/links/article_links.csv")
+    archived_links = pd.read_csv("../../output/links/wayback_article_links.csv")
     fetch_unhosted_wayback_links(archived_links)
     merge_unhosted_wayback()
     updated_archived_links = pd.read_csv(
-        "output/links/merged_wayback_article_links.csv"
+        "../../output/links/merged_wayback_article_links.csv"
     )
     download_pdfs(curr_links, False)
     download_pdfs(updated_archived_links, True)

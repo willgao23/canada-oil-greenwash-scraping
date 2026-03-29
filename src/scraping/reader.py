@@ -1,5 +1,5 @@
 import pandas as pd
-from config import ORG_NAMES, ARTICLE_CSV_FIELDS, WAYBACK_PREFIX, WAYBACK_ENDPOINT
+from src.config import ORG_NAMES, ARTICLE_CSV_FIELDS, WAYBACK_PREFIX, WAYBACK_ENDPOINT
 import csv
 import os
 import string
@@ -242,6 +242,8 @@ def read_cnrl_articles(urls, is_archive, is_retry):
     for url in tqdm(urls):
         try:
             pdf_name = re.findall("[^\/]+$", url)[0]
+            if pdf_name.endswith("-fr.pdf"):
+                continue
             pdf_loc = (
                 f"./output/pdfs/Canadian Natural Resources/archived/{pdf_name}"
                 if is_archive
@@ -358,9 +360,9 @@ def read_shell_articles(urls, is_archive):
 
 def append_csv(new_rows, is_archive):
     article_csv = (
-        "output/content/raw_wayback_content.csv"
+        "../../output/content/raw_wayback_content.csv"
         if is_archive
-        else "output/content/raw_content.csv"
+        else "../../output/content/raw_content.csv"
     )
 
     with open(article_csv, "a", newline="", encoding="utf-8") as csvfile:
@@ -372,9 +374,9 @@ def append_csv(new_rows, is_archive):
 
 def merge_csv(new_rows, is_archive):
     article_csv = (
-        "output/content/raw_wayback_content.csv"
+        "../../output/content/raw_wayback_content.csv"
         if is_archive
-        else "output/content/raw_content.csv"
+        else "../../output/content/raw_content.csv"
     )
     new_df = pd.DataFrame(new_rows)
     if os.path.exists(article_csv):
@@ -389,8 +391,10 @@ def merge_csv(new_rows, is_archive):
 
 
 def read_urls():
-    curr_to_read = pd.read_csv("output/links/article_links.csv")
-    archived_to_read = pd.read_csv("output/links/merged_wayback_article_links.csv")
+    curr_to_read = pd.read_csv("../../output/links/article_links.csv")
+    archived_to_read = pd.read_csv(
+        "../../output/links/merged_wayback_article_links.csv"
+    )
     for org in ORG_NAMES:
         curr_org_links = curr_to_read[curr_to_read["Organization"] == org][
             "Link"
@@ -423,8 +427,8 @@ def read_urls():
 
 
 def retry_failed_pdfs():
-    raw_content = pd.read_csv("output/content/raw_content.csv")
-    raw_wayback_content = pd.read_csv("output/content/raw_wayback_content.csv")
+    raw_content = pd.read_csv("../../output/content/raw_content.csv")
+    raw_wayback_content = pd.read_csv("../../output/content/raw_wayback_content.csv")
     for org in ORG_NAMES:
         content_links = raw_content[raw_content["Organization"] == org][
             "Link"

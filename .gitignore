@@ -8,7 +8,7 @@ __pycache__/
 
 # archive
 archive.py
-*archived*.csv
+*archived*
 
 # tesseract install
 *tesserocr*
