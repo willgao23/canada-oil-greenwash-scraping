@@ -15,6 +15,10 @@ python -m spacy download en_core_web_lg
 To install tesserocr and related dependencies, follow the instructions specific to your OS on the documentation page:
 https://pypi.org/project/tesserocr/
 
+The pre-trained model can be downloaded from the [following Hugging Face repository](https://huggingface.co/wgao23/green-claim-classifier-RoBERTa-finetune) and all files should be placed in a directory `src/training/roberta_classifier_final` to run the scripts without adjustment.
+
+The final labelled dataset after model inference can be found at `output/analyzed/all_labelled.csv`, and `output/analyzed/vagueness_analyzed.csv` contains all of the green claims analyzed using [VAGO](https://research.mondeca.com/demo/vago/).
+
 ### Pipeline
 
 Overview: scraping -> labelling -> training -> analysis
@@ -42,7 +46,7 @@ This directory contains the notebook used for fine-tuning RoBERTa on the subset 
 src/analysis
 ```
 
-This directory contains the notebooks used for model inference and basic descriptive statistical analysis (`inference.ipynb`), latent dirichlet allocation for statistical topic modelling by time period and organization (`lda.ipynb`), and a script which runs each of the sentences labelled as green claims by the model through the [open web demo of VAGO](https://research.mondeca.com/demo/vago/) to analyze the extent to which they are linguistically vague.
+This directory contains the notebooks used for model inference and basic descriptive statistical analysis (`inference.ipynb`), latent dirichlet allocation for statistical topic modelling by time period and organization (`lda.ipynb`), and a script (`analyzer.py`) which runs each of the sentences labelled as green claims by the model through the [open web demo of VAGO](https://research.mondeca.com/demo/vago/) to analyze the extent to which they are linguistically vague.
 
 ### Sources and Generative AI Use Disclosure
 
