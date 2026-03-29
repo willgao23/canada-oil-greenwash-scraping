@@ -1,9 +1,11 @@
 requests
 beautifulsoup4
 selenium
-pandas
+pandas==2.3.3
 tqdm
 spacy
 spacy-layout
 onnxruntime
+matplotlib
 nltk
+ipykernel
