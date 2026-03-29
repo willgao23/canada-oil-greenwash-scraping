@@ -36,7 +36,7 @@ This directory contains two different options for labelling the press release se
 src/training
 ```
 
-This directory contains the notebook used for fine-tuning RoBERTa on the subset of the data labelled in the previous step. The final model weights and best threshold can be found in the `src/training/roberta_classifier_final` directory.
+This directory contains the notebook used for fine-tuning RoBERTa on the subset of the data labelled in the previous step.
 
 ```
 src/analysis
