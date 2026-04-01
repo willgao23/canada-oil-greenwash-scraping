@@ -1,3 +1,8 @@
+import sys
+import os, os.path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pandas as pd
 import requests
 from selenium import webdriver
@@ -7,9 +12,8 @@ import csv
 from datetime import datetime
 import pandas as pd
 from tqdm import tqdm
-import os
 import re
-from src.config import ANALYZE_CSV_FIELDS, VAGO_URL, VAGUENESS_TYPES
+from config import ANALYZE_CSV_FIELDS, VAGO_URL, VAGUENESS_TYPES
 
 driver = webdriver.Chrome()
 driver.implicitly_wait(5)
@@ -26,13 +30,13 @@ def vagueness_detect(green_claims):
     claims_data = green_claims.to_dict("records")
     driver.get(VAGO_URL)
     with open(
-        "../../output/analyzed/vagueness_analyzed.csv",
+        "../../output/analyzed/vagueness_analyzed_match.csv",
         "a",
         newline="",
         encoding="utf-8",
     ) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=ANALYZE_CSV_FIELDS)
-        if os.stat("../../output/analyzed/vagueness_analyzed.csv").st_size == 0:
+        if os.stat("../../output/analyzed/vagueness_analyzed_match.csv").st_size == 0:
             writer.writeheader()
 
         for row in tqdm(claims_data):
@@ -56,13 +60,13 @@ def vagueness_detect(green_claims):
                 pattern = rf"{VAGUENESS_TYPES[i].lower()}:\s*(.*)"
                 match = re.search(pattern, inner_text)
                 words = match.group(1).strip() if match else None
-                row[f"{VAGUENESS_TYPES[i]} Words"] = words
+                row[f"{VAGUENESS_TYPES[i]}"] = words
 
             final_row = {k: v for k, v in row.items() if k in ANALYZE_CSV_FIELDS}
             writer.writerow(final_row)
 
 
 if __name__ == "__main__":
-    labelled_df = pd.read_csv("../../output/all_labelled.csv")
+    labelled_df = pd.read_csv("../../output/analyzed/vagueness_analyzed_todo.csv")
     green_claims = labelled_df[labelled_df["Label"] == 1]
     vagueness_detect(green_claims)
