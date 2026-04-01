@@ -10,6 +10,7 @@ __pycache__/
 archive.py
 *archived*
 src/training/roberta_classifier_final/*
+test*.py
 
 # tesseract install
 *tesserocr*
