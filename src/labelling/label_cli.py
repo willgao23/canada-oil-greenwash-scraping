@@ -1,8 +1,11 @@
+import sys
+import os, os.path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pandas as pd
-import numpy as np
-import os
 import csv
-from src.config import LABEL_CSV_FIELDS, NUM_TRAIN
+from config import LABEL_CSV_FIELDS, NUM_TRAIN
 
 
 def prompt_user_labelling(to_label):
@@ -33,8 +36,7 @@ def prompt_user_labelling(to_label):
 
 
 def label_data():
-    df = pd.read_csv("../../output/labelled/labelled.csv")
-    if not os.path.exists("../../output/labelled/labelled.csv") or df.empty:
+    if not os.path.exists("../../output/labelled/labelled.csv"):
         sentences_df = pd.read_csv("../../output/processed/sentences.csv")
         wayback_sentences_df = pd.read_csv(
             "../../output/processed/wayback_sentences.csv"
@@ -62,10 +64,5 @@ def label_data():
         )
 
 
-def count_pos():
-    labelled_df = pd.read_csv("../../output/labelled/labelled.csv")
-    print(labelled_df["Label"].sum())
-
-
 if __name__ == "__main__":
-    count_pos()
+    label_data()

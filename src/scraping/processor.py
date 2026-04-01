@@ -1,12 +1,15 @@
+import sys
+import os, os.path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pandas as pd
 import re
-import os
 import unicodedata
-import os
 import csv
 import spacy
 import re
-from src.config import SENTENCE_CSV_FIELDS, MIN_CHARS
+from config import SENTENCE_CSV_FIELDS, MIN_CHARS
 
 nlp = spacy.load("en_core_web_lg")
 

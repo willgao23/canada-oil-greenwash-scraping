@@ -1,14 +1,15 @@
+import sys
+import os, os.path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
 import pandas as pd
-from src.config import ORG_NAMES, ARTICLE_CSV_FIELDS, WAYBACK_PREFIX, WAYBACK_ENDPOINT
+from config import ORG_NAMES, ARTICLE_CSV_FIELDS, WAYBACK_PREFIX, WAYBACK_ENDPOINT
 import csv
-import os
-import string
-from datetime import datetime
 from tqdm import tqdm
 from bs4 import BeautifulSoup
 import requests
 import time
-import random
 import re
 import spacy
 from spacy_layout import spaCyLayout
@@ -17,7 +18,6 @@ from docling.document_converter import FormatOption
 from docling.pipeline.standard_pdf_pipeline import StandardPdfPipeline
 from docling.backend.pypdfium2_backend import PyPdfiumDocumentBackend
 from docling.datamodel.pipeline_options import PdfPipelineOptions, TesseractOcrOptions
-import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.wait import WebDriverWait

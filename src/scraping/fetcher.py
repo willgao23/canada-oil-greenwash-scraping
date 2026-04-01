@@ -1,4 +1,9 @@
-from src.config import (
+import sys
+import os, os.path
+
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+
+from config import (
     URLS,
     WAYBACK_ENDPOINT,
     BILL_C59_ROYAL_ASSENT_DATE,
@@ -14,11 +19,9 @@ from selenium.webdriver.support import expected_conditions as EC
 import csv
 from datetime import datetime
 import time
-import os
 import random
 import pandas as pd
 from tqdm import tqdm
-import os, os.path
 
 driver = webdriver.Chrome()
 driver.implicitly_wait(5)
