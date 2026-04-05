@@ -16,7 +16,7 @@ import re
 from config import ANALYZE_CSV_FIELDS, VAGO_URL, VAGUENESS_TYPES
 
 driver = webdriver.Chrome()
-driver.implicitly_wait(5)
+driver.implicitly_wait(7)
 date = datetime.now()
 session = requests.Session()
 session.headers.update(
@@ -30,13 +30,13 @@ def vagueness_detect(green_claims):
     claims_data = green_claims.to_dict("records")
     driver.get(VAGO_URL)
     with open(
-        "../../output/analyzed/vagueness_analyzed_match.csv",
+        "../../output/analyzed/vagueness_analyzed.csv",
         "a",
         newline="",
         encoding="utf-8",
     ) as csvfile:
         writer = csv.DictWriter(csvfile, fieldnames=ANALYZE_CSV_FIELDS)
-        if os.stat("../../output/analyzed/vagueness_analyzed_match.csv").st_size == 0:
+        if os.stat("../../output/analyzed/vagueness_analyzed.csv").st_size == 0:
             writer.writeheader()
 
         for row in tqdm(claims_data):
@@ -67,6 +67,6 @@ def vagueness_detect(green_claims):
 
 
 if __name__ == "__main__":
-    labelled_df = pd.read_csv("../../output/analyzed/vagueness_analyzed_todo.csv")
+    labelled_df = pd.read_csv("../../output/analyzed/all_labelled.csv")
     green_claims = labelled_df[labelled_df["Label"] == 1]
     vagueness_detect(green_claims)
