@@ -48,6 +48,8 @@ src/analysis
 
 This directory contains the notebooks used for model inference and basic descriptive statistical analysis (`inference.ipynb`), latent dirichlet allocation for statistical topic modelling by time period and organization (`lda.ipynb`), and a script (`analyzer.py`) which runs each of the sentences labelled as green claims by the model through the [open web demo of VAGO](https://research.mondeca.com/demo/vago/) to analyze the extent to which they are linguistically vague.
 
+`vago_label_cli.py` is another basic command line interface used for labelling if green claims are vague or not, and should be run after `analyzer.py` to evaluate the effectiveness of VAGO at identifying vague green claims in the given context. `evaluation.ipynb` is a notebook that contains code for evaluating the results of VAGO against the hand-labelled subset and showing the descriptive statistics of the labelled subset.
+
 ### Sources and Generative AI Use Disclosure
 
 Any sources used in the creation of a specific script / notebook are credited at the top of the respective file.
